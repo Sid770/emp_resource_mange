@@ -2,13 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Employee, CreateEmployeeDto, UpdateEmployeeDto } from '../models/employee.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EmployeeService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:5140/api/employees';
+  private apiUrl = `${environment.apiUrl}/employees`;
 
   getAll(): Observable<Employee[]> {
     return this.http.get<Employee[]>(this.apiUrl);

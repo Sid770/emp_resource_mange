@@ -2,13 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Allocation, CreateAllocationDto, UpdateAllocationDto } from '../models/allocation.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AllocationService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:5140/api/allocations';
+  private apiUrl = `${environment.apiUrl}/allocations`;
 
   getAll(): Observable<Allocation[]> {
     return this.http.get<Allocation[]>(this.apiUrl);
