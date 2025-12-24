@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using EmployeeResourceAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,9 +15,8 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Configure DbContext with SQLite
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Configure MongoDB
+builder.Services.AddSingleton<MongoDbService>();
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -49,21 +47,5 @@ app.UseHttpsRedirection();
 app.UseCors("AllowAngularApp");
 app.UseAuthorization();
 app.MapControllers();
-
-// Initialize database
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<ApplicationDbContext>();
-        context.Database.EnsureCreated();
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred creating the database.");
-    }
-}
 
 app.Run();

@@ -1,8 +1,14 @@
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace EmployeeResourceAPI.Models
 {
     public class Employee
     {
-        public int Id { get; set; }
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string? Id { get; set; }
+        
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
@@ -11,8 +17,5 @@ namespace EmployeeResourceAPI.Models
         public string Designation { get; set; } = string.Empty;
         public DateTime JoiningDate { get; set; }
         public bool IsActive { get; set; } = true;
-
-        // Navigation property
-        public ICollection<Allocation> Allocations { get; set; } = new List<Allocation>();
     }
 }

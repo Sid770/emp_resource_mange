@@ -1,8 +1,14 @@
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace EmployeeResourceAPI.Models
 {
     public class Project
     {
-        public int Id { get; set; }
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string? Id { get; set; }
+        
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
@@ -10,8 +16,5 @@ namespace EmployeeResourceAPI.Models
         public string Status { get; set; } = string.Empty; // Active, Completed, On Hold
         public string ManagerName { get; set; } = string.Empty;
         public string ClientName { get; set; } = string.Empty;
-
-        // Navigation property
-        public ICollection<Allocation> Allocations { get; set; } = new List<Allocation>();
     }
 }

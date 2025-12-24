@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 using EmployeeResourceAPI.Data;
 using EmployeeResourceAPI.Models;
 using EmployeeResourceAPI.DTOs;
@@ -10,40 +10,42 @@ namespace EmployeeResourceAPI.Controllers
     [ApiController]
     public class EmployeesController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly MongoDbService _mongoDb;
 
-        public EmployeesController(ApplicationDbContext context)
+        public EmployeesController(MongoDbService mongoDb)
         {
-            _context = context;
+            _mongoDb = mongoDb;
         }
 
         // GET: api/Employees
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetEmployees()
         {
-            var employees = await _context.Employees
-                .Select(e => new EmployeeDto
-                {
-                    Id = e.Id,
-                    Name = e.Name,
-                    Email = e.Email,
-                    Phone = e.Phone,
-                    Department = e.Department,
-                    Role = e.Role,
-                    Designation = e.Designation,
-                    JoiningDate = e.JoiningDate,
-                    IsActive = e.IsActive
-                })
-                .ToListAsync();
+            var employees = await _mongoDb.Employees.Find(_ => true).ToListAsync();
+            
+            var employeeDtos = employees.Select(e => new EmployeeDto
+            {
+                Id = e.Id!,
+                Name = e.Name,
+                Email = e.Email,
+                Phone = e.Phone,
+                Department = e.Department,
+                Role = e.Role,
+                Designation = e.Designation,
+                JoiningDate = e.JoiningDate,
+                IsActive = e.IsActive
+            }).ToList();
 
-            return Ok(employees);
+            return Ok(employeeDtos);
         }
 
         // GET: api/Employees/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<EmployeeDto>> GetEmployee(int id)
+        public async Task<ActionResult<EmployeeDto>> GetEmployee(string id)
         {
-            var employee = await _context.Employees.FindAsync(id);
+            var employee = await _mongoDb.Employees
+                .Find(e => e.Id == id)
+                .FirstOrDefaultAsync();
 
             if (employee == null)
             {
@@ -52,7 +54,7 @@ namespace EmployeeResourceAPI.Controllers
 
             var employeeDto = new EmployeeDto
             {
-                Id = employee.Id,
+                Id = employee.Id!,
                 Name = employee.Name,
                 Email = employee.Email,
                 Phone = employee.Phone,
@@ -82,12 +84,11 @@ namespace EmployeeResourceAPI.Controllers
                 IsActive = createDto.IsActive
             };
 
-            _context.Employees.Add(employee);
-            await _context.SaveChangesAsync();
+            await _mongoDb.Employees.InsertOneAsync(employee);
 
             var employeeDto = new EmployeeDto
             {
-                Id = employee.Id,
+                Id = employee.Id!,
                 Name = employee.Name,
                 Email = employee.Email,
                 Phone = employee.Phone,
@@ -103,9 +104,11 @@ namespace EmployeeResourceAPI.Controllers
 
         // PUT: api/Employees/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEmployee(int id, UpdateEmployeeDto updateDto)
+        public async Task<IActionResult> UpdateEmployee(string id, UpdateEmployeeDto updateDto)
         {
-            var employee = await _context.Employees.FindAsync(id);
+            var employee = await _mongoDb.Employees
+                .Find(e => e.Id == id)
+                .FirstOrDefaultAsync();
 
             if (employee == null)
             {
@@ -119,41 +122,23 @@ namespace EmployeeResourceAPI.Controllers
             employee.Designation = updateDto.Designation;
             employee.IsActive = updateDto.IsActive;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!EmployeeExists(id))
-                {
-                    return NotFound();
-                }
-                throw;
-            }
+            await _mongoDb.Employees.ReplaceOneAsync(e => e.Id == id, employee);
 
             return NoContent();
         }
 
         // DELETE: api/Employees/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteEmployee(int id)
+        public async Task<IActionResult> DeleteEmployee(string id)
         {
-            var employee = await _context.Employees.FindAsync(id);
-            if (employee == null)
+            var result = await _mongoDb.Employees.DeleteOneAsync(e => e.Id == id);
+            
+            if (result.DeletedCount == 0)
             {
                 return NotFound();
             }
 
-            _context.Employees.Remove(employee);
-            await _context.SaveChangesAsync();
-
             return NoContent();
-        }
-
-        private bool EmployeeExists(int id)
-        {
-            return _context.Employees.Any(e => e.Id == id);
         }
     }
 }

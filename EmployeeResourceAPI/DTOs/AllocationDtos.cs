@@ -2,10 +2,10 @@ namespace EmployeeResourceAPI.DTOs
 {
     public class AllocationDto
     {
-        public int Id { get; set; }
-        public int EmployeeId { get; set; }
+        public string Id { get; set; } = string.Empty;
+        public string EmployeeId { get; set; } = string.Empty;
         public string EmployeeName { get; set; } = string.Empty;
-        public int ProjectId { get; set; }
+        public string ProjectId { get; set; } = string.Empty;
         public string ProjectName { get; set; } = string.Empty;
         public DateTime AllocationDate { get; set; }
         public DateTime? ReleaseDate { get; set; }
@@ -15,8 +15,8 @@ namespace EmployeeResourceAPI.DTOs
 
     public class CreateAllocationDto
     {
-        public int EmployeeId { get; set; }
-        public int ProjectId { get; set; }
+        public string EmployeeId { get; set; } = string.Empty;
+        public string ProjectId { get; set; } = string.Empty;
         public DateTime AllocationDate { get; set; }
         public DateTime? ReleaseDate { get; set; }
         public int AllocationPercentage { get; set; }

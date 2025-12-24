@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 using EmployeeResourceAPI.Data;
 using EmployeeResourceAPI.Models;
 using EmployeeResourceAPI.DTOs;
@@ -10,39 +10,41 @@ namespace EmployeeResourceAPI.Controllers
     [ApiController]
     public class ProjectsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly MongoDbService _mongoDb;
 
-        public ProjectsController(ApplicationDbContext context)
+        public ProjectsController(MongoDbService mongoDb)
         {
-            _context = context;
+            _mongoDb = mongoDb;
         }
 
         // GET: api/Projects
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProjectDto>>> GetProjects()
         {
-            var projects = await _context.Projects
-                .Select(p => new ProjectDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    Status = p.Status,
-                    ManagerName = p.ManagerName,
-                    ClientName = p.ClientName
-                })
-                .ToListAsync();
+            var projects = await _mongoDb.Projects.Find(_ => true).ToListAsync();
+            
+            var projectDtos = projects.Select(p => new ProjectDto
+            {
+                Id = p.Id!,
+                Name = p.Name,
+                Description = p.Description,
+                StartDate = p.StartDate,
+                EndDate = p.EndDate,
+                Status = p.Status,
+                ManagerName = p.ManagerName,
+                ClientName = p.ClientName
+            }).ToList();
 
-            return Ok(projects);
+            return Ok(projectDtos);
         }
 
         // GET: api/Projects/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<ProjectDto>> GetProject(int id)
+        public async Task<ActionResult<ProjectDto>> GetProject(string id)
         {
-            var project = await _context.Projects.FindAsync(id);
+            var project = await _mongoDb.Projects
+                .Find(p => p.Id == id)
+                .FirstOrDefaultAsync();
 
             if (project == null)
             {
@@ -51,7 +53,7 @@ namespace EmployeeResourceAPI.Controllers
 
             var projectDto = new ProjectDto
             {
-                Id = project.Id,
+                Id = project.Id!,
                 Name = project.Name,
                 Description = project.Description,
                 StartDate = project.StartDate,
@@ -79,12 +81,11 @@ namespace EmployeeResourceAPI.Controllers
                 ClientName = createDto.ClientName
             };
 
-            _context.Projects.Add(project);
-            await _context.SaveChangesAsync();
+            await _mongoDb.Projects.InsertOneAsync(project);
 
             var projectDto = new ProjectDto
             {
-                Id = project.Id,
+                Id = project.Id!,
                 Name = project.Name,
                 Description = project.Description,
                 StartDate = project.StartDate,
@@ -99,9 +100,11 @@ namespace EmployeeResourceAPI.Controllers
 
         // PUT: api/Projects/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProject(int id, UpdateProjectDto updateDto)
+        public async Task<IActionResult> UpdateProject(string id, UpdateProjectDto updateDto)
         {
-            var project = await _context.Projects.FindAsync(id);
+            var project = await _mongoDb.Projects
+                .Find(p => p.Id == id)
+                .FirstOrDefaultAsync();
 
             if (project == null)
             {
@@ -115,41 +118,23 @@ namespace EmployeeResourceAPI.Controllers
             project.ManagerName = updateDto.ManagerName;
             project.ClientName = updateDto.ClientName;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ProjectExists(id))
-                {
-                    return NotFound();
-                }
-                throw;
-            }
+            await _mongoDb.Projects.ReplaceOneAsync(p => p.Id == id, project);
 
             return NoContent();
         }
 
         // DELETE: api/Projects/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProject(int id)
+        public async Task<IActionResult> DeleteProject(string id)
         {
-            var project = await _context.Projects.FindAsync(id);
-            if (project == null)
+            var result = await _mongoDb.Projects.DeleteOneAsync(p => p.Id == id);
+            
+            if (result.DeletedCount == 0)
             {
                 return NotFound();
             }
 
-            _context.Projects.Remove(project);
-            await _context.SaveChangesAsync();
-
             return NoContent();
-        }
-
-        private bool ProjectExists(int id)
-        {
-            return _context.Projects.Any(e => e.Id == id);
         }
     }
 }
